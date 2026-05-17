@@ -4,7 +4,9 @@ Team
 1.	Radithya natha syandana_25051030042
 2.	Aruf Abidzar Atthohiri_25051030047
 3.	Ragil Anam Winarya_25051030053
-4.	M Brian Endra Nata Safit_25051030056________________________________________
+4.	M Brian Endra Nata Safit_25051030056
+5.
+6.	________________________________________
 Mata Kuliah
 Algoritma dan Struktur Data
 S1 Teknik Elektro
