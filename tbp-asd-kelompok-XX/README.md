@@ -41,12 +41,65 @@ o	Mengatur prioritas jadwal tugas atau formula berdasarkan deadline.
 o	Merepresentasikan hubungan antar topik atau formula pembelajaran. 
 ________________________________________
 Fitur Program
-•	Evaluasi ekspresi matematika 
-•	Konversi infix ke postfix/prefix 
-•	Penyimpanan formula akademik 
-•	Pencarian formula cepat 
-•	Penjadwalan tugas akademik 
-•	Pengingat deadline tugas 
-•	Riwayat perhitungan pengguna 
-•	Laporan aktivitas evaluasi formula 
+No	Fitur	Keterangan
+1	Evaluasi ekspresi matematika	Mendukung infix, postfix, prefix
+2	Konversi infix ↔ postfix/prefix	Menggunakan algoritma Shunting-yard
+3	Penyimpanan formula akademik	BST dengan nama formula sebagai key
+4	Pencarian formula cepat	BST search O(log n)
+5	Penjadwalan tugas akademik	Priority Queue berdasarkan deadline
+6	Pengingat deadline tugas	Notifikasi tugas dengan prioritas tertinggi
+7	Riwayat perhitungan pengguna	Doubly Linked List dengan timestamp
+8	Laporan aktivitas evaluasi formula	Ekspor ke file teks/CSV
+9	Antrean proses evaluasi	Queue untuk batch processing
+10	Topik pembelajaran dependency	Graph + DFS/BFS traversal
+11	Tambahan: Undo/redo riwayat	Stack untuk navigasi history
+12	Tambahan: Visualisasi dependency	Graph dengan matplotlib (opsional)
+________________________________________
+Struktur Folder
+KELOMPOK-9_Academic-Expression-Evaluator-Formula-Scheduler/
+│
+├── docs/                                    # laporan dan slide presentasi
+│   ├── Laporan_Proyek.pdf
+│   ├── Slide_Presentasi.pptx
+│   ├── Flowchart_Diagram.pdf
+│   ├── UML_Diagram.pdf
+│   └── Analisis_Kompleksitas.pdf
+│
+├── src/                                     # source code utama
+│   ├── main.py                              # entry point program
+│   ├── stack_evaluator.py                   # Stack untuk evaluasi & konversi ekspresi
+│   ├── queue_processor.py                   # Queue untuk antrean evaluasi
+│   ├── linked_list_history.py               # Doubly Linked List untuk riwayat
+│   ├── bst_formula.py                       # BST untuk penyimpanan formula
+│   ├── priority_queue_scheduler.py          # Priority Queue untuk penjadwalan tugas
+│   ├── graph_topics.py                      # Graph untuk hubungan antar topik
+│   ├── formula.py                           # Class Formula
+│   ├── task.py                              # Class Task (tugas akademik)
+│   ├── history_node.py                      # Class Node untuk Linked List
+│   └── utils.py                             # Fungsi bantu & visualisasi
+│
+├── tests/                                   # pengujian program
+│   ├── test_stack.py
+│   ├── test_queue.py
+│   ├── test_linked_list.py
+│   ├── test_bst.py
+│   ├── test_priority_queue.py
+│   ├── test_graph.py
+│   └── test_integration.py
+│
+├── experiments/                             # eksperimen dan analisis
+│   ├── kompleksitas_waktu.md
+│   ├── benchmark_evaluasi.csv
+│   ├── analisis_performa.ipynb
+│   └── simulasi_jadwal.py
+│
+├── data/                                    # data penyimpanan
+│   ├── formulas.json                        # database formula akademik
+│   ├── tasks.json                           # database tugas
+│   ├── topics.json                          # data dependency topik
+│   └── history.log                          # riwayat perhitungan
+│
+├── requirements.txt                         # dependensi Python
+└── README.md                                # panduan singkat
+
 
