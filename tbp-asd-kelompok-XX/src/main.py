@@ -24,7 +24,7 @@ def push(self, data) -> None:
     node.next = self.top
     self.top = node
     self._size += 1
-
+    
 def pop(self):
     """Big-O: O(1)."""
     if not self.top: 
