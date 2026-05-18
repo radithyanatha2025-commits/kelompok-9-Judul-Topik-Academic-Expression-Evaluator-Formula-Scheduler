@@ -13,3 +13,4 @@ def eval_postfix(tokens, var_table):
             stack.push(float(tok) if tok not in var_table 
                        else var_table[tok])
     return stack.pop()
+                                                                                                                    
