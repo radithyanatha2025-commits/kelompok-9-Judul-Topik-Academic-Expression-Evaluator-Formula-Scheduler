@@ -1,8 +1,4 @@
 def tokenize(expr : str) -> list:
-    """
-    memecah string ekspresi menjadi list token.
-    Mendukung angka, variabel (a-z), fungsi, operator, kurung.
-    """
     tokens = []
     i = 0
     n = len(expr)
@@ -31,6 +27,7 @@ def tokenize(expr : str) -> list:
             continue
         raise ValueError(f"Karakter tidak dikenal: '{ch}'")
     return tokens
+    
 def print_help():
     print("""
 ================================================================================
