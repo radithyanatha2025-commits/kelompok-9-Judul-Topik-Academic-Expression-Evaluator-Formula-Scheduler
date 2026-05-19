@@ -1,8 +1,5 @@
 MODUL 3: BST Tabel Variabel (SATU-SATUNYA BST DALAM PROGRAM)
-Binary Search Tree untuk menyimpan variabel dengan kunci (a-z)
-"""
-"""
-MODUL 3: BST TABEL VARIABEL (Symbol Table)
+BST TABEL VARIABEL (Symbol Table)
 ============================================
 Implementasi BST dengan kunci = nama variabel (char)
 Mendukung: SET, GET, DELETE, LIST (inorder traversal)
