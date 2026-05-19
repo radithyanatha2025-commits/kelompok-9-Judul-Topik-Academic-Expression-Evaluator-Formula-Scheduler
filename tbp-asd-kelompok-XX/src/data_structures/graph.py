@@ -190,9 +190,7 @@ class FormulaDAG:
         
         if not nodes:
             return []
-        
         print(f"\n[DEBUG] Topological Sort pada {len(nodes)} node")
-        
         # ========== STEP 1: Hitung In-Degree ==========
         in_degree = {n: 0 for n in nodes}
         
@@ -202,14 +200,11 @@ class FormulaDAG:
                     in_degree[v] += 1
         
         print(f"  → In-degree: {in_degree}")
-        
         # ========== STEP 2: Inisialisasi Queue ==========
         q = deque([n for n in nodes if in_degree[n] == 0])
         print(f"  → Queue awal (in-degree 0): {list(q)}")
-        
         # ========== STEP 3: Proses Queue ==========
         order = []
-        
         while q:
             u = q.popleft()
             order.append(u)
@@ -221,54 +216,41 @@ class FormulaDAG:
                     if in_degree[v] == 0:
                         q.append(v)
                         print(f"    → '{v}' in-degree menjadi 0, masuk queue")
-        
         # ========== STEP 4: Deteksi Siklus ==========
         if len(order) != len(nodes):
             remaining = nodes - set(order)
             raise ValueError(f"Siklus terdeteksi pada node: {remaining}")
-        
         print(f"  → Topological sort selesai: {order}")
         return order
-    
     def evaluate_one(self, name: str, var_table: Dict[str, float]) -> float:
         """
         Mengevaluasi satu formula beserta semua dependensinya.
-        
         Proses:
             1. Lakukan topological sort untuk urutan evaluasi
             2. Evaluasi formula sesuai urutan, simpan hasil di memory
-        
         Args:
             name: Nama formula yang akan dievaluasi
             var_table: Tabel variabel dari user (BST)
-        
         Returns:
             Hasil evaluasi formula
         
         Big-O: O(V + E) untuk sort + O(n) untuk evaluasi tree
         """
         print(f"\n[DEBUG] Evaluasi formula: {name}")
-        
         # Dapatkan urutan evaluasi
         order = self.topological_sort()
         print(f"  → Urutan evaluasi: {order}")
-        
         # Dictionary untuk menyimpan hasil antar formula
         results = {}
-        
         # Evaluasi setiap formula sesuai urutan
         for f in order:
             # Gabungkan variabel user dengan hasil formula sebelumnya
             local_table = {**var_table, **results}
-            
             # Evaluasi expression tree
             value = eval_tree(self.trees[f], local_table)
             results[f] = value
-            
             print(f"  → {f} = {value}")
-        
         return results[name]
-    
     def get_dependencies(self, name: str) -> List[str]:
         """
         Mendapatkan daftar dependensi dari suatu formula.
@@ -279,31 +261,26 @@ class FormulaDAG:
             if name in targets:
                 deps.append(dep)
         return deps
-    
     def get_dependents(self, name: str) -> List[str]:
         """
         Mendapatkan daftar formula yang bergantung pada suatu formula.
         (Edge yang keluar dari node tersebut)
         """
         return self.graph.get(name, [])
-    
     def show_graph(self) -> None:
         """Menampilkan struktur graph"""
         print("\n" + "="*50)
         print("STRUKTUR GRAPH (DAG)")
         print("="*50)
-        
         if not self.formulas:
             print("Tidak ada formula.")
             return
-        
         for node in self.formulas:
             deps = self.get_dependencies(node)
             deps_str = ", ".join(deps) if deps else "(tidak ada)"
             print(f"  {node} = {self.formulas[node]}")
             print(f"    ← bergantung pada: {deps_str}")
             print()
-    
     def is_valid_dag(self) -> bool:
         """Memeriksa apakah graph adalah DAG yang valid"""
         try:
@@ -311,8 +288,6 @@ class FormulaDAG:
             return True
         except ValueError:
             return False
-
-
 # =============================================================================
 # CONTOH PENGGUNAAN
 # =============================================================================
@@ -320,28 +295,22 @@ if __name__ == "__main__":
     print("="*70)
     print(" CONTOH PENGGUNAAN GRAPH DAG")
     print("="*70)
-    
     # Buat instance DAG
     dag = FormulaDAG()
-    
     # Definisikan beberapa formula
     print("\n--- Mendefinisikan Formula ---")
     dag.define('rad', 't * 3.141592653589793 / 180')
     dag.define('jarak', '(v^2 * sin(2*rad)) / g')
     dag.define('waktu', 'v * sin(rad) / g')
     dag.define('tinggi', 'v * sin(rad) * waktu - 0.5 * g * waktu^2')
-    
     # Tampilkan struktur graph
     dag.show_graph()
-    
     # Siapkan tabel variabel
     var_table = {'v': 25.0, 'g': 9.81, 't': 45.0}
-    
     # Evaluasi formula
     print("\n--- Evaluasi Formula ---")
     hasil = dag.evaluate_one('jarak', var_table)
     print(f"\nHasil akhir jarak = {hasil:.2f} meter")
-    
     # Coba buat siklus (akan error)
     print("\n--- Deteksi Siklus ---")
     try:
