@@ -1,320 +1,438 @@
 from typing import Dict, List, Set, Optional
-from collections import deque
 
-# Import dari modul lain (asumsi sudah ada)
-from modul1_stack import infix_to_postfix, FUNCS
-from modul4_expr_tree import build_expr_tree, eval_tree, ExprNode
-
-def tokenize(expr: str) -> List[str]:
-    """Memecah ekspresi menjadi token-token"""
-    tokens = []
-    i = 0
-    n = len(expr)
-    while i < n:
-        ch = expr[i]
-        if ch.isspace():
-            i += 1
-            continue
-        if ch.isdigit() or (ch == '.' and i+1 < n and expr[i+1].isdigit()):
-            j = i
-            while j < n and (expr[j].isdigit() or expr[j] == '.'):
-                j += 1
-            tokens.append(expr[i:j])
-            i = j
-            continue
-        if ch.isalpha():
-            j = i
-            while j < n and expr[j].isalpha():
-                j += 1
-            tokens.append(expr[i:j])
-            i = j
-            continue
-        if ch in '+-*/^()':
-            tokens.append(ch)
-            i += 1
-            continue
-        raise ValueError(f"Karakter tidak dikenal: '{ch}'")
-    return tokens
+# =============================================================================
+# KONSTANTA UNTUK DFS TOPOLOGICAL SORT
+# =============================================================================
+WHITE = 0  # Belum dikunjungi
+GRAY = 1   # Sedang dikunjungi (masih di stack rekursif)
+BLACK = 2  # Sudah selesai dikunjungi
 
 
 class FormulaDAG:
     """
     Directed Acyclic Graph (DAG) untuk manajemen dependensi formula.
+    Implementasi murni tanpa Queue - menggunakan DFS recursion stack.
     
-    Contoh:
-        Formula A = B + C  (A bergantung pada B dan C)
-        Formula B = D * 2   (B bergantung pada D)
-        
-        Maka graph:
-            D → B → A
-            C → A
-    
-    Aturan:
-        - Node = nama formula
-        - Edge X → Y berarti Y bergantung pada X
-        - Graph harus DAG (tidak boleh ada siklus)
+    Contoh penggunaan:
+        dag = FormulaDAG()
+        dag.add_node('jarak', '(v^2 * sin(2*rad)) / g')
+        dag.add_node('rad', 'theta * pi / 180')
+        dag.add_edge('rad', 'jarak')      # jarak bergantung pada rad
+        order = dag.topological_sort()    # ['rad', 'jarak']
     """
     
     def __init__(self):
-        # ========== STRUKTUR DATA GRAPH ==========
-        self.graph: Dict[str, List[str]] = {}    # Adjacency list
-        self.formulas: Dict[str, str] = {}       # Node → ekspresi
-        self.trees: Dict[str, ExprNode] = {}     # Node → expression tree
-        # =========================================
+        """Inisialisasi graph kosong"""
+        self.adjacency_list: Dict[str, List[str]] = {}    # Adjacency list
+        self.node_data: Dict[str, str] = {}               # Data tiap node (formula)
     
-    def _extract_dependencies(self, expr: str) -> Set[str]:
-        """
-        Ekstrak semua dependensi (variabel/formula) dari sebuah ekspresi.
-        
-        Contoh:
-            expr = "v^2 * sin(2*rad) / g"
-            return = {'v', 'rad', 'g'}
-        
-        Big-O: O(m) di mana m = jumlah token
-        """
-        tokens = tokenize(expr)
-        deps = set()
-        
-        for tok in tokens:
-            # Lewati fungsi bawaan (sin, cos, dll)
-            if tok in FUNCS:
-                continue
-            
-            # Lewati angka (bisa di-parse ke float)
-            try:
-                float(tok)
-                continue
-            except ValueError:
-                pass
-            
-            # Jika token adalah huruf (variabel/formula), tambahkan sebagai dependensi
-            if tok.isalpha():
-                deps.add(tok)
-        
-        return deps
+    # ========== OPERASI DASAR GRAPH ==========
     
-    def define(self, name: str, expr: str) -> None:
+    def add_node(self, node: str, data: str = "") -> None:
         """
-        Mendefinisikan formula baru dan menambahkannya ke graph.
-        
-        Proses:
-            1. Validasi ekspresi (build tree)
-            2. Ekstrak dependensi
-            3. Tambahkan node dan edge ke graph
-            4. Cek apakah masih DAG (tidak ada siklus)
-        
-        Contoh:
-            dag.define('jarak', '(v^2 * sin(2*rad)) / g')
+        Menambahkan node baru ke graph.
         
         Args:
-            name: Nama formula (node)
-            expr: Ekspresi matematika dalam string
+            node: Nama node (identifier)
+            data: Data yang terkait dengan node (misal ekspresi formula)
+        """
+        if node not in self.adjacency_list:
+            self.adjacency_list[node] = []
+            self.node_data[node] = data
+    
+    def add_edge(self, from_node: str, to_node: str) -> None:
+        """
+        Menambahkan edge dari from_node ke to_node.
+        Edge A → B berarti B bergantung pada A.
+        
+        Args:
+            from_node: Node sumber (dependensi)
+            to_node: Node tujuan (yang bergantung)
         
         Raises:
-            ValueError: Jika terjadi siklus dependensi
+            ValueError: Jika node tidak ditemukan
         """
-        print(f"\n[DEBUG] Mendefinisikan formula: {name} = {expr}")
+        if from_node not in self.adjacency_list:
+            raise ValueError(f"Node '{from_node}' tidak ditemukan")
+        if to_node not in self.adjacency_list:
+            raise ValueError(f"Node '{to_node}' tidak ditemukan")
         
-        # ========== STEP 1: Validasi Ekspresi ==========
-        tokens = tokenize(expr)
-        postfix = infix_to_postfix(tokens)
-        tree = build_expr_tree(postfix)
-        print(f"  → Ekspresi valid, tree berhasil dibangun")
+        self.adjacency_list[from_node].append(to_node)
+    
+    def remove_node(self, node: str) -> None:
+        """
+        Menghapus node dan semua edge yang terhubung.
+        """
+        if node in self.adjacency_list:
+            del self.adjacency_list[node]
         
-        # ========== STEP 2: Ekstrak Dependensi ==========
-        deps = self._extract_dependencies(expr)
-        deps.discard(name)  # Hapus self-dependency jika ada
-        print(f"  → Dependensi ditemukan: {deps if deps else 'tidak ada'}")
+        # Hapus edge yang mengarah ke node ini
+        for u in self.adjacency_list:
+            if node in self.adjacency_list[u]:
+                self.adjacency_list[u].remove(node)
         
-        # ========== STEP 3: Simpan Formula ==========
-        self.formulas[name] = expr
-        self.trees[name] = tree
-        
-        # ========== STEP 4: Tambahkan Edge ke Graph ==========
-        # Edge: dep → name (name bergantung pada dep)
-        for dep in deps:
-            if dep in self.formulas:
-                self.graph.setdefault(dep, []).append(name)
-                print(f"  → Edge: {dep} → {name}")
-        
-        # Pastikan node memiliki entry di graph (untuk node tanpa dependensi)
-        self.graph.setdefault(name, [])
-        
-        # ========== STEP 5: Cek Siklus (Validasi DAG) ==========
-        try:
-            order = self.topological_sort()
-            print(f"  → Urutan evaluasi: {' → '.join(order)}")
-            print(f"  → Formula '{name}' berhasil ditambahkan (DAG valid)")
-        except ValueError as e:
-            # Rollback jika terjadi siklus
-            del self.formulas[name]
-            del self.trees[name]
-            for dep in deps:
-                if dep in self.graph and name in self.graph.get(dep, []):
-                    self.graph[dep].remove(name)
-            if name in self.graph:
-                del self.graph[name]
-            raise ValueError(f"Siklus terdeteksi: {e}")
+        if node in self.node_data:
+            del self.node_data[node]
+    
+    def remove_edge(self, from_node: str, to_node: str) -> None:
+        """
+        Menghapus edge dari from_node ke to_node.
+        """
+        if from_node in self.adjacency_list:
+            if to_node in self.adjacency_list[from_node]:
+                self.adjacency_list[from_node].remove(to_node)
+    
+    def get_neighbors(self, node: str) -> List[str]:
+        """
+        Mendapatkan semua tetangga (dependen) dari suatu node.
+        """
+        return self.adjacency_list.get(node, [])
+    
+    def get_predecessors(self, node: str) -> List[str]:
+        """
+        Mendapatkan semua node yang memiliki edge ke node ini (dependensi).
+        """
+        predecessors = []
+        for u, neighbors in self.adjacency_list.items():
+            if node in neighbors:
+                predecessors.append(u)
+        return predecessors
+    
+    # ========== TOPOLOGICAL SORT (DFS - TANPA QUEUE) ==========
     
     def topological_sort(self) -> List[str]:
         """
-        Topological Sort menggunakan algoritma Kahn (BFS).
+        Topological Sort menggunakan DFS (Depth-First Search).
+        Tanpa Queue - menggunakan recursion stack dan 3 warna.
         
-        Prinsip:
-            1. Hitung in-degree (jumlah edge yang masuk) setiap node
-            2. Masukkan node dengan in-degree = 0 ke queue
-            3. Keluarkan node dari queue, kurangi in-degree tetangganya
-            4. Ulangi hingga queue kosong
+        Algoritma:
+            1. Lakukan DFS pada setiap node
+            2. Node yang sudah selesai diproses ditambahkan ke stack
+            3. Hasil akhir adalah stack yang dibalik
         
         Returns:
-            List node dalam urutan evaluasi yang valid
+            List node dalam urutan topological (dependensi terlebih dahulu)
         
         Raises:
-            ValueError: Jika ada siklus (graph bukan DAG)
+            ValueError: Jika terdeteksi siklus (graph bukan DAG)
         
         Big-O: O(V + E)
-        
-        Contoh:
-            Graph: D → B → A
-                   C → A
-            
-            In-degree: A=2, B=1, C=0, D=0
-            Queue awal: [C, D]
-            
-            Step 1: ambil C → order=[C], kurangi in-degree A=1
-            Step 2: ambil D → order=[C,D], kurangi in-degree B=0
-            Step 3: ambil B → order=[C,D,B], kurangi in-degree A=0
-            Step 4: ambil A → order=[C,D,B,A]
         """
-        nodes = set(self.formulas.keys())
+        nodes = list(self.adjacency_list.keys())
+        state = {node: WHITE for node in nodes}
+        result = []
         
-        if not nodes:
-            return []
-        print(f"\n[DEBUG] Topological Sort pada {len(nodes)} node")
-        # ========== STEP 1: Hitung In-Degree ==========
-        in_degree = {n: 0 for n in nodes}
-        
-        for u in nodes:
-            for v in self.graph.get(u, []):
-                if v in nodes:
-                    in_degree[v] += 1
-        
-        print(f"  → In-degree: {in_degree}")
-        # ========== STEP 2: Inisialisasi Queue ==========
-        q = deque([n for n in nodes if in_degree[n] == 0])
-        print(f"  → Queue awal (in-degree 0): {list(q)}")
-        # ========== STEP 3: Proses Queue ==========
-        order = []
-        while q:
-            u = q.popleft()
-            order.append(u)
-            print(f"  → Mengeluarkan '{u}' dari queue, order: {order}")
+        def dfs(node: str):
+            """
+            DFS rekursif untuk topological sort.
+            Mengembalikan True jika tidak ada siklus.
+            """
+            state[node] = GRAY  # Sedang diproses
             
-            for v in self.graph.get(u, []):
-                if v in nodes:
-                    in_degree[v] -= 1
-                    if in_degree[v] == 0:
-                        q.append(v)
-                        print(f"    → '{v}' in-degree menjadi 0, masuk queue")
-        # ========== STEP 4: Deteksi Siklus ==========
-        if len(order) != len(nodes):
-            remaining = nodes - set(order)
-            raise ValueError(f"Siklus terdeteksi pada node: {remaining}")
-        print(f"  → Topological sort selesai: {order}")
-        return order
-    def evaluate_one(self, name: str, var_table: Dict[str, float]) -> float:
+            for neighbor in self.adjacency_list[node]:
+                if state[neighbor] == WHITE:
+                    dfs(neighbor)
+                elif state[neighbor] == GRAY:
+                    # Mendeteksi back edge → ada siklus!
+                    raise ValueError(f"Siklus terdeteksi: node '{neighbor}' sudah ada di stack")
+            
+            state[node] = BLACK  # Selesai diproses
+            result.append(node)  # Tambahkan ke hasil
+        
+        for node in nodes:
+            if state[node] == WHITE:
+                dfs(node)
+        
+        # Balik hasil (karena kita menambahkan setelah selesai)
+        return result[::-1]
+    
+    # ========== DETEKSI SIKLUS (CYCLE DETECTION) ==========
+    
+    def has_cycle(self) -> bool:
         """
-        Mengevaluasi satu formula beserta semua dependensinya.
-        Proses:
-            1. Lakukan topological sort untuk urutan evaluasi
-            2. Evaluasi formula sesuai urutan, simpan hasil di memory
-        Args:
-            name: Nama formula yang akan dievaluasi
-            var_table: Tabel variabel dari user (BST)
+        Memeriksa apakah graph memiliki siklus.
+        
         Returns:
-            Hasil evaluasi formula
-        
-        Big-O: O(V + E) untuk sort + O(n) untuk evaluasi tree
+            True jika ada siklus, False jika DAG valid
         """
-        print(f"\n[DEBUG] Evaluasi formula: {name}")
-        # Dapatkan urutan evaluasi
-        order = self.topological_sort()
-        print(f"  → Urutan evaluasi: {order}")
-        # Dictionary untuk menyimpan hasil antar formula
-        results = {}
-        # Evaluasi setiap formula sesuai urutan
-        for f in order:
-            # Gabungkan variabel user dengan hasil formula sebelumnya
-            local_table = {**var_table, **results}
-            # Evaluasi expression tree
-            value = eval_tree(self.trees[f], local_table)
-            results[f] = value
-            print(f"  → {f} = {value}")
-        return results[name]
-    def get_dependencies(self, name: str) -> List[str]:
-        """
-        Mendapatkan daftar dependensi dari suatu formula.
-        (Edge yang masuk ke node tersebut)
-        """
-        deps = []
-        for dep, targets in self.graph.items():
-            if name in targets:
-                deps.append(dep)
-        return deps
-    def get_dependents(self, name: str) -> List[str]:
-        """
-        Mendapatkan daftar formula yang bergantung pada suatu formula.
-        (Edge yang keluar dari node tersebut)
-        """
-        return self.graph.get(name, [])
-    def show_graph(self) -> None:
-        """Menampilkan struktur graph"""
-        print("\n" + "="*50)
-        print("STRUKTUR GRAPH (DAG)")
-        print("="*50)
-        if not self.formulas:
-            print("Tidak ada formula.")
-            return
-        for node in self.formulas:
-            deps = self.get_dependencies(node)
-            deps_str = ", ".join(deps) if deps else "(tidak ada)"
-            print(f"  {node} = {self.formulas[node]}")
-            print(f"    ← bergantung pada: {deps_str}")
-            print()
-    def is_valid_dag(self) -> bool:
-        """Memeriksa apakah graph adalah DAG yang valid"""
         try:
             self.topological_sort()
-            return True
-        except ValueError:
             return False
+        except ValueError:
+            return True
+    
+    def find_cycle(self) -> Optional[List[str]]:
+        """
+        Mencari siklus dalam graph.
+        
+        Returns:
+            List node yang membentuk siklus, atau None jika tidak ada siklus
+        """
+        nodes = list(self.adjacency_list.keys())
+        state = {node: WHITE for node in nodes}
+        parent = {node: None for node in nodes}
+        cycle = []
+        
+        def dfs_find_cycle(node: str) -> bool:
+            state[node] = GRAY
+            
+            for neighbor in self.adjacency_list[node]:
+                if state[neighbor] == WHITE:
+                    parent[neighbor] = node
+                    if dfs_find_cycle(neighbor):
+                        return True
+                elif state[neighbor] == GRAY:
+                    # Siklus ditemukan
+                    curr = node
+                    while curr != neighbor:
+                        cycle.append(curr)
+                        curr = parent[curr]
+                    cycle.append(neighbor)
+                    cycle.append(node)
+                    return True
+            
+            state[node] = BLACK
+            return False
+        
+        for node in nodes:
+            if state[node] == WHITE:
+                if dfs_find_cycle(node):
+                    return cycle[::-1]
+        
+        return None
+    
+    # ========== OPERASI FORMULA (INTEGRASI DENGAN FORMULA) ==========
+    
+    def define_formula(self, name: str, expr: str, dependencies: List[str]) -> None:
+        """
+        Mendefinisikan formula dengan dependensinya.
+        
+        Args:
+            name: Nama formula (node)
+            expr: Ekspresi formula
+            dependencies: Daftar node yang menjadi dependensi
+        
+        Raises:
+            ValueError: Jika definisi menyebabkan siklus
+        """
+        # Simpan data formula
+        self.add_node(name, expr)
+        
+        # Tambahkan edge dari setiap dependensi ke formula ini
+        for dep in dependencies:
+            if dep in self.adjacency_list:
+                self.add_edge(dep, name)
+            else:
+                # Jika dependensi belum ada, buat node kosong dulu
+                self.add_node(dep, "")
+                self.add_edge(dep, name)
+        
+        # Validasi: cek apakah masih DAG
+        if self.has_cycle():
+            # Rollback jika menyebabkan siklus
+            self.remove_node(name)
+            raise ValueError(f"Definisi '{name}' menyebabkan siklus dependensi")
+    
+    def get_evaluation_order(self, target_node: str) -> List[str]:
+        """
+        Mendapatkan urutan evaluasi untuk mencapai target node.
+        Hanya node yang diperlukan (relevant nodes).
+        
+        Returns:
+            List node dalam urutan evaluasi (dependensi terlebih dahulu)
+        """
+        # Dapatkan semua node yang diperlukan (reachable dari target)
+        needed_nodes = set()
+        
+        def collect_dependencies(node: str):
+            needed_nodes.add(node)
+            for pred in self.get_predecessors(node):
+                if pred not in needed_nodes:
+                    collect_dependencies(pred)
+        
+        collect_dependencies(target_node)
+        
+        # Buat subgraph dari node yang diperlukan
+        subgraph_nodes = [n for n in self.adjacency_list.keys() if n in needed_nodes]
+        
+        # Lakukan topological sort pada subgraph
+        temp_state = {n: WHITE for n in subgraph_nodes}
+        result = []
+        
+        def dfs_sub(node: str):
+            temp_state[node] = GRAY
+            for neighbor in self.adjacency_list[node]:
+                if neighbor in temp_state:
+                    if temp_state[neighbor] == WHITE:
+                        dfs_sub(neighbor)
+                    elif temp_state[neighbor] == GRAY:
+                        raise ValueError(f"Siklus terdeteksi")
+            temp_state[node] = BLACK
+            result.append(node)
+        
+        for node in subgraph_nodes:
+            if temp_state[node] == WHITE:
+                dfs_sub(node)
+        
+        return result[::-1]
+    
+    # ========== VISUALISASI GRAPH ==========
+    
+    def display(self) -> None:
+        """
+        Menampilkan struktur graph secara visual.
+        """
+        print("\n" + "="*60)
+        print("STRUKTUR GRAPH DAG")
+        print("="*60)
+        
+        if not self.adjacency_list:
+            print("Graph kosong.")
+            return
+        
+        for node, neighbors in self.adjacency_list.items():
+            data_info = f" = {self.node_data[node]}" if self.node_data[node] else ""
+            print(f"\n📌 {node}{data_info}")
+            
+            if neighbors:
+                print(f"   → dependen dari: {', '.join(neighbors)}")
+            else:
+                print(f"   → tidak memiliki dependen (leaf node)")
+            
+            predecessors = self.get_predecessors(node)
+            if predecessors:
+                print(f"   ← bergantung pada: {', '.join(predecessors)}")
+    
+    def print_adjacency_matrix(self) -> None:
+        """
+        Menampilkan adjacency matrix.
+        """
+        nodes = sorted(self.adjacency_list.keys())
+        n = len(nodes)
+        node_index = {node: i for i, node in enumerate(nodes)}
+        
+        print("\n" + "="*60)
+        print("ADJACENCY MATRIX")
+        print("="*60)
+        
+        # Header
+        print("    ", end="")
+        for node in nodes:
+            print(f"{node:>4}", end="")
+        print()
+        
+        # Matrix
+        for i, u in enumerate(nodes):
+            print(f"{u:>3} |", end="")
+            for v in nodes:
+                if v in self.adjacency_list.get(u, []):
+                    print("   1", end="")
+                else:
+                    print("   0", end="")
+            print()
+
+
 # =============================================================================
-# CONTOH PENGGUNAAN
+# CONTOH PENGGUNAAN (Langsung Bisa Dijalankan)
 # =============================================================================
 if __name__ == "__main__":
     print("="*70)
-    print(" CONTOH PENGGUNAAN GRAPH DAG")
+    print(" DEMO GRAPH DAG (DIRECTED ACYCLIC GRAPH) - TANPA QUEUE")
     print("="*70)
-    # Buat instance DAG
+    
+    # ========== CONTOH 1: MEMBANGUN GRAPH ==========
+    print("\n" + "-"*50)
+    print("CONTOH 1: MEMBANGUN GRAPH DAG")
+    print("-"*50)
+    
     dag = FormulaDAG()
-    # Definisikan beberapa formula
-    print("\n--- Mendefinisikan Formula ---")
-    dag.define('rad', 't * 3.141592653589793 / 180')
-    dag.define('jarak', '(v^2 * sin(2*rad)) / g')
-    dag.define('waktu', 'v * sin(rad) / g')
-    dag.define('tinggi', 'v * sin(rad) * waktu - 0.5 * g * waktu^2')
-    # Tampilkan struktur graph
-    dag.show_graph()
-    # Siapkan tabel variabel
-    var_table = {'v': 25.0, 'g': 9.81, 't': 45.0}
-    # Evaluasi formula
-    print("\n--- Evaluasi Formula ---")
-    hasil = dag.evaluate_one('jarak', var_table)
-    print(f"\nHasil akhir jarak = {hasil:.2f} meter")
-    # Coba buat siklus (akan error)
-    print("\n--- Deteksi Siklus ---")
+    
+    # Tambahkan node (formula)
+    dag.add_node("theta", "sudut dalam derajat")
+    dag.add_node("rad", "theta * pi / 180")
+    dag.add_node("v0", "kecepatan awal")
+    dag.add_node("g", "gravitasi")
+    dag.add_node("jarak", "(v0^2 * sin(2*rad)) / g")
+    
+    # Tambahkan edge (dependensi)
+    dag.add_edge("theta", "rad")   # rad bergantung pada theta
+    dag.add_edge("rad", "jarak")    # jarak bergantung pada rad
+    dag.add_edge("v0", "jarak")     # jarak bergantung pada v0
+    dag.add_edge("g", "jarak")      # jarak bergantung pada g
+    
+    # Tampilkan graph
+    dag.display()
+    
+    # ========== CONTOH 2: TOPOLOGICAL SORT ==========
+    print("\n" + "-"*50)
+    print("CONTOH 2: TOPOLOGICAL SORT (Urutan Evaluasi)")
+    print("-"*50)
+    
     try:
-        dag.define('siklus_a', 'siklus_b + 1')
-        dag.define('siklus_b', 'siklus_a + 1')
+        order = dag.topological_sort()
+        print(f"Urutan topological: {' → '.join(order)}")
+        print("\nPenjelasan: Node yang menjadi dependensi dievaluasi terlebih dahulu")
     except ValueError as e:
         print(f"Error: {e}")
+    
+    # ========== CONTOH 3: DETEKSI SIKLUS ==========
+    print("\n" + "-"*50)
+    print("CONTOH 3: DETEKSI SIKLUS")
+    print("-"*50)
+    
+    # Buat graph dengan siklus
+    dag_cycle = FormulaDAG()
+    dag_cycle.add_node("A", "")
+    dag_cycle.add_node("B", "")
+    dag_cycle.add_node("C", "")
+    
+    dag_cycle.add_edge("A", "B")
+    dag_cycle.add_edge("B", "C")
+    dag_cycle.add_edge("C", "A")  # Siklus: A → B → C → A
+    
+    print("Graph dengan siklus: A → B → C → A")
+    print(f"Memiliki siklus? {dag_cycle.has_cycle()}")
+    
+    cycle = dag_cycle.find_cycle()
+    if cycle:
+        print(f"Siklus ditemukan: {' → '.join(cycle)}")
+    
+    # ========== CONTOH 4: URUTAN EVALUASI UNTUK TARGET ==========
+    print("\n" + "-"*50)
+    print("CONTOH 4: URUTAN EVALUASI UNTUK FORMULA 'jarak'")
+    print("-"*50)
+    
+    order_for_jarak = dag.get_evaluation_order("jarak")
+    print(f"Evaluasi '{'jarak'}' perlu memproses: {' → '.join(order_for_jarak)}")
+    
+    # ========== CONTOH 5: MENGGUNAKAN DEFINE_FORMULA ==========
+    print("\n" + "-"*50)
+    print("CONTOH 5: DEFINE FORMULA DENGAN DEPENDENSI")
+    print("-"*50)
+    
+    dag2 = FormulaDAG()
+    
+    # Definisikan formula dengan dependensi otomatis
+    try:
+        dag2.define_formula("rad", "theta * pi / 180", ["theta"])
+        dag2.define_formula("jarak", "(v0^2 * sin(2*rad)) / g", ["v0", "rad", "g"])
+        
+        print("✅ Formula berhasil didefinisikan:")
+        dag2.display()
+        
+        order = dag2.get_evaluation_order("jarak")
+        print(f"\nUrutan evaluasi 'jarak': {' → '.join(order)}")
+        
+    except ValueError as e:
+        print(f"Error: {e}")
+    
+    # ========== CONTOH 6: ADJACENCY MATRIX ==========
+    print("\n" + "-"*50)
+    print("CONTOH 6: ADJACENCY MATRIX")
+    print("-"*50)
+    
+    dag.print_adjacency_matrix()
+    
+    print("\n" + "="*70)
+    print("✅ SEMUA CONTOH SELESAI")
+    print("="*70)
