@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
 """
 AKADEMIK EXPRESSION EVALUATOR & FORMULA SCHEDULER
-2 Studi Kasus Teknik (Fisika & Elektro) + Eksperimen Big-O
-Output 10 ekspresi uji menampilkan nilai variabel
+
 """
 
 import math
