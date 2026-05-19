@@ -114,6 +114,7 @@ class VarBST:
             self._inorder(node.right, out)
 
 MODUL 6: CLI - Menggunakan berbagai struktur data
+IMPORT dari modul 3 
 """
 def tokenize(expr : str) -> list:
     tokens = []
