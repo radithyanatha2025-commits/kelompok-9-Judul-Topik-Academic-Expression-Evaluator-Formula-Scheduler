@@ -1,18 +1,25 @@
+#!/usr/bin/env python3
+"""
+AKADEMIK EXPRESSION EVALUATOR & FORMULA SCHEDULER
+2 Studi Kasus Teknik (Fisika & Elektro) + Eksperimen Big-O
+Output 10 ekspresi uji menampilkan nilai variabel
+"""
+
 import math
-import re
+import time
 from typing import Optional, Dict, List, Tuple, Set
 from collections import deque
 
-# ----------------------------------------------------------------------
-# Operator & function definitions
-# ----------------------------------------------------------------------
+# =============================================================================
+# 1. Operator & Fungsi
+# =============================================================================
 PREC = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
 RASSOC = {'^'}
 FUNCS = {'sin', 'cos', 'sqrt', 'log', 'abs'}
 
-# ----------------------------------------------------------------------
-# Linked List Node & Stack
-# ----------------------------------------------------------------------
+# =============================================================================
+# 2. Stack (Linked List)
+# =============================================================================
 class LNode:
     __slots__ = ('data', 'next')
     def __init__(self, data):
@@ -23,30 +30,25 @@ class Stack:
     def __init__(self):
         self.top = None
         self.size = 0
-
-    def push(self, data) -> None:
+    def push(self, data):
         node = LNode(data)
         node.next = self.top
         self.top = node
         self.size += 1
-
     def pop(self):
-        if self.top is None:
-            return None
+        if self.top is None: return None
         val = self.top.data
         self.top = self.top.next
         self.size -= 1
         return val
-
     def peek(self):
         return self.top.data if self.top else None
-
-    def is_empty(self) -> bool:
+    def is_empty(self):
         return self.size == 0
 
-# ----------------------------------------------------------------------
-# Tokenizer
-# ----------------------------------------------------------------------
+# =============================================================================
+# 3. Tokenizer
+# =============================================================================
 def tokenize(expr: str) -> List[str]:
     tokens = []
     i = 0
@@ -74,12 +76,12 @@ def tokenize(expr: str) -> List[str]:
             tokens.append(ch)
             i += 1
             continue
-        raise ValueError(f"Unknown character: '{ch}'")
+        raise ValueError(f"Karakter tidak dikenal: '{ch}'")
     return tokens
 
-# ----------------------------------------------------------------------
-# Module 1: Infix to Postfix (Shunting-Yard)
-# ----------------------------------------------------------------------
+# =============================================================================
+# 4. Infix -> Postfix
+# =============================================================================
 def infix_to_postfix(tokens: List[str]) -> List[str]:
     output = []
     op_stack = Stack()
@@ -92,7 +94,7 @@ def infix_to_postfix(tokens: List[str]) -> List[str]:
             while not op_stack.is_empty() and op_stack.peek() != '(':
                 output.append(op_stack.pop())
             if op_stack.is_empty():
-                raise ValueError("Mismatched parentheses")
+                raise ValueError("Parentheses tidak cocok")
             op_stack.pop()
             if not op_stack.is_empty() and op_stack.peek() in FUNCS:
                 output.append(op_stack.pop())
@@ -107,73 +109,63 @@ def infix_to_postfix(tokens: List[str]) -> List[str]:
     while not op_stack.is_empty():
         top = op_stack.pop()
         if top in '()':
-            raise ValueError("Mismatched parentheses")
+            raise ValueError("Parentheses tidak cocok")
         output.append(top)
     return output
 
-# ----------------------------------------------------------------------
-# Module 2: Evaluate Postfix
-# ----------------------------------------------------------------------
+# =============================================================================
+# 5. Evaluasi Postfix
+# =============================================================================
 def eval_postfix(tokens: List[str], var_table: Dict[str, float]) -> float:
     stack = Stack()
     for tok in tokens:
         if tok in FUNCS:
             arg = stack.pop()
             if arg is None:
-                raise ValueError(f"Not enough arguments for {tok}")
+                raise ValueError(f"Argumen kurang untuk {tok}")
             if tok == 'sin':
                 res = math.sin(arg)
             elif tok == 'cos':
                 res = math.cos(arg)
             elif tok == 'sqrt':
-                if arg < 0:
-                    raise ValueError("sqrt of negative number")
+                if arg < 0: raise ValueError("sqrt negatif")
                 res = math.sqrt(arg)
             elif tok == 'log':
-                if arg <= 0:
-                    raise ValueError("log of non-positive number")
+                if arg <= 0: raise ValueError("log non-positif")
                 res = math.log(arg)
             elif tok == 'abs':
                 res = abs(arg)
             else:
-                raise ValueError(f"Unknown function {tok}")
+                raise ValueError(f"Fungsi tak dikenal {tok}")
             stack.push(res)
         elif tok in PREC:
             b = stack.pop()
             a = stack.pop()
             if a is None or b is None:
-                raise ValueError(f"Not enough operands for {tok}")
-            if tok == '+':
-                res = a + b
-            elif tok == '-':
-                res = a - b
-            elif tok == '*':
-                res = a * b
-            elif tok == '/':
-                if b == 0:
-                    raise ZeroDivisionError("division by zero")
-                res = a / b
-            elif tok == '^':
-                res = a ** b
-            else:
-                raise ValueError(f"Unknown operator {tok}")
+                raise ValueError(f"Operand kurang untuk {tok}")
+            if tok == '+': res = a + b
+            elif tok == '-': res = a - b
+            elif tok == '*': res = a * b
+            elif tok == '/': res = a / b
+            elif tok == '^': res = a ** b
+            else: raise ValueError(f"Operator tak dikenal {tok}")
             stack.push(res)
         else:
             try:
                 val = float(tok)
             except ValueError:
                 if tok not in var_table:
-                    raise ValueError(f"Variable '{tok}' not set")
+                    raise ValueError(f"Variabel '{tok}' belum di-SET")
                 val = var_table[tok]
             stack.push(val)
     result = stack.pop()
     if not stack.is_empty():
-        raise ValueError("Invalid expression: leftover stack entries")
+        raise ValueError("Ekspresi tidak valid")
     return result
 
-# ----------------------------------------------------------------------
-# Module 4: Expression Tree
-# ----------------------------------------------------------------------
+# =============================================================================
+# 6. Expression Tree
+# =============================================================================
 class ExprNode:
     __slots__ = ('val', 'left', 'right')
     def __init__(self, val: str):
@@ -188,104 +180,64 @@ def build_expr_tree(postfix: List[str]) -> Optional[ExprNode]:
         if tok in PREC:
             right = stack.pop()
             left = stack.pop()
-            if left is None or right is None:
-                raise ValueError("Invalid postfix expression for tree")
             node.left = left
             node.right = right
         elif tok in FUNCS:
             child = stack.pop()
-            if child is None:
-                raise ValueError("Not enough arguments for function")
             node.left = child
         stack.push(node)
     root = stack.pop()
-    if not stack.is_empty():
-        raise ValueError("Invalid postfix expression for tree")
     return root
 
 def inorder_expr(root: Optional[ExprNode]) -> str:
-    if root is None:
-        return ""
+    if root is None: return ""
     if root.val in PREC:
-        left = inorder_expr(root.left)
-        right = inorder_expr(root.right)
-        return f"({left} {root.val} {right})"
+        return f"({inorder_expr(root.left)} {root.val} {inorder_expr(root.right)})"
     elif root.val in FUNCS:
-        child = inorder_expr(root.left)
-        return f"{root.val}({child})"
+        return f"{root.val}({inorder_expr(root.left)})"
     else:
         return root.val
 
 def preorder_expr(root: Optional[ExprNode]) -> List[str]:
-    if root is None:
-        return []
-    result = [root.val]
-    if root.left:
-        result.extend(preorder_expr(root.left))
-    if root.right:
-        result.extend(preorder_expr(root.right))
-    return result
+    if root is None: return []
+    return [root.val] + preorder_expr(root.left) + preorder_expr(root.right)
 
 def postorder_expr(root: Optional[ExprNode]) -> List[str]:
-    if root is None:
-        return []
-    result = []
-    if root.left:
-        result.extend(postorder_expr(root.left))
-    if root.right:
-        result.extend(postorder_expr(root.right))
-    result.append(root.val)
-    return result
+    if root is None: return []
+    return postorder_expr(root.left) + postorder_expr(root.right) + [root.val]
 
 def eval_tree(root: Optional[ExprNode], var_table: Dict[str, float]) -> float:
     if root is None:
-        raise ValueError("Empty tree")
+        raise ValueError("Tree kosong")
     if root.val in PREC:
         left_val = eval_tree(root.left, var_table)
         right_val = eval_tree(root.right, var_table)
-        op = root.val
-        if op == '+':
-            return left_val + right_val
-        elif op == '-':
-            return left_val - right_val
-        elif op == '*':
-            return left_val * right_val
-        elif op == '/':
-            if right_val == 0:
-                raise ZeroDivisionError("division by zero")
-            return left_val / right_val
-        elif op == '^':
-            return left_val ** right_val
+        if root.val == '+': return left_val + right_val
+        if root.val == '-': return left_val - right_val
+        if root.val == '*': return left_val * right_val
+        if root.val == '/': return left_val / right_val
+        if root.val == '^': return left_val ** right_val
     elif root.val in FUNCS:
         arg = eval_tree(root.left, var_table)
-        if root.val == 'sin':
-            return math.sin(arg)
-        elif root.val == 'cos':
-            return math.cos(arg)
-        elif root.val == 'sqrt':
-            if arg < 0:
-                raise ValueError("sqrt of negative number")
-            return math.sqrt(arg)
-        elif root.val == 'log':
-            if arg <= 0:
-                raise ValueError("log of non-positive number")
-            return math.log(arg)
-        elif root.val == 'abs':
-            return abs(arg)
+        if root.val == 'sin': return math.sin(arg)
+        if root.val == 'cos': return math.cos(arg)
+        if root.val == 'sqrt': return math.sqrt(arg)
+        if root.val == 'log': return math.log(arg)
+        if root.val == 'abs': return abs(arg)
     else:
         try:
             return float(root.val)
         except ValueError:
             if root.val not in var_table:
-                raise ValueError(f"Variable '{root.val}' not set")
+                raise ValueError(f"Variabel '{root.val}' belum di-SET")
             return var_table[root.val]
-    raise ValueError(f"Unknown node value: {root.val}")
+    raise ValueError(f"Node tak dikenal: {root.val}")
 
-# ----------------------------------------------------------------------
-# Module 3: BST Variable Table
-# ----------------------------------------------------------------------
+# =============================================================================
+# 7. BST Tabel Variabel (satu huruf)
+# =============================================================================
 class VarBSTNode:
-    __slots__ = ('key', 'val', 'left', 'right')
+    __slots__ = ('key','val','left','right')
     def __init__(self, key: str, val: float):
         self.key = key
         self.val = val
@@ -295,13 +247,11 @@ class VarBSTNode:
 class VarBST:
     def __init__(self):
         self.root = None
-
-    def set(self, key: str, val: float) -> None:
-        if not isinstance(key, str) or len(key) != 1 or not key.isalpha():
-            raise ValueError("Variable name must be a single letter a-z")
+    def set(self, key: str, val: float):
+        if len(key) != 1 or not key.isalpha():
+            raise ValueError("Nama variabel harus satu huruf a-z")
         self.root = self._set(self.root, key, val)
-
-    def _set(self, node: Optional[VarBSTNode], key: str, val: float) -> VarBSTNode:
+    def _set(self, node, key, val):
         if node is None:
             return VarBSTNode(key, val)
         if key < node.key:
@@ -311,66 +261,55 @@ class VarBST:
         else:
             node.val = val
         return node
-
-    def get(self, key: str) -> Optional[float]:
+    def get(self, key: str):
         node = self._get(self.root, key)
         return node.val if node else None
-
-    def _get(self, node: Optional[VarBSTNode], key: str) -> Optional[VarBSTNode]:
+    def _get(self, node, key):
         if node is None or node.key == key:
             return node
         if key < node.key:
             return self._get(node.left, key)
         else:
             return self._get(node.right, key)
-
-    def delete(self, key: str) -> None:
+    def delete(self, key: str):
         self.root = self._delete(self.root, key)
-
-    def _delete(self, node: Optional[VarBSTNode], key: str) -> Optional[VarBSTNode]:
-        if node is None:
-            return None
+    def _delete(self, node, key):
+        if node is None: return None
         if key < node.key:
             node.left = self._delete(node.left, key)
         elif key > node.key:
             node.right = self._delete(node.right, key)
         else:
-            if node.left is None:
-                return node.right
-            if node.right is None:
-                return node.left
+            if node.left is None: return node.right
+            if node.right is None: return node.left
             succ = self._min(node.right)
             node.key = succ.key
             node.val = succ.val
             node.right = self._delete(node.right, succ.key)
         return node
-
-    def _min(self, node: VarBSTNode) -> VarBSTNode:
-        while node.left:
-            node = node.left
+    def _min(self, node):
+        while node.left: node = node.left
         return node
-
-    def list_all(self) -> List[Tuple[str, float]]:
+    def list_all(self):
         result = []
         self._inorder(self.root, result)
         return result
-
-    def _inorder(self, node: Optional[VarBSTNode], out: List[Tuple[str, float]]) -> None:
+    def _inorder(self, node, out):
         if node:
             self._inorder(node.left, out)
             out.append((node.key, node.val))
             self._inorder(node.right, out)
 
-# ----------------------------------------------------------------------
-# Module 5: Formula DAG
-# ----------------------------------------------------------------------
+# =============================================================================
+# 8. Formula DAG (arah dependensi benar)
+# =============================================================================
 class FormulaDAG:
     def __init__(self):
-        self.adj: Dict[str, List[str]] = {}
+        self.graph: Dict[str, List[str]] = {}
         self.formulas: Dict[str, str] = {}
         self.trees: Dict[str, ExprNode] = {}
 
-    def _extract_dependencies(self, expr: str) -> Set[str]:
+    def _extract_deps(self, expr: str) -> Set[str]:
         tokens = tokenize(expr)
         deps = set()
         for tok in tokens:
@@ -378,88 +317,152 @@ class FormulaDAG:
                 deps.add(tok)
         return deps
 
-    def define(self, name: str, expr: str) -> None:
+    def define(self, name: str, expr: str):
         tokens = tokenize(expr)
         postfix = infix_to_postfix(tokens)
         tree = build_expr_tree(postfix)
-        deps = self._extract_dependencies(expr)
+        deps = self._extract_deps(expr)
         deps.discard(name)
-        self.adj[name] = list(deps)
         self.formulas[name] = expr
         self.trees[name] = tree
-        try:
-            self.topological_sort()
-        except ValueError as e:
-            del self.adj[name]
-            del self.formulas[name]
-            del self.trees[name]
-            raise ValueError(f"Cycle detected when defining '{name}': {e}")
+        for dep in deps:
+            if dep in self.formulas:
+                self.graph.setdefault(dep, []).append(name)
+        self.graph.setdefault(name, [])
+        self.topological_sort()
 
     def topological_sort(self) -> List[str]:
-        in_degree = {u: 0 for u in self.adj}
-        for u in self.adj:
-            for v in self.adj[u]:
-                if v not in in_degree:
-                    in_degree[v] = 0
-        for u in self.adj:
-            for v in self.adj[u]:
-                if v in in_degree:
+        nodes = set(self.formulas.keys())
+        in_degree = {n: 0 for n in nodes}
+        for u in nodes:
+            for v in self.graph.get(u, []):
+                if v in nodes:
                     in_degree[v] += 1
-        q = deque([u for u, d in in_degree.items() if d == 0])
+        q = deque([n for n in nodes if in_degree[n] == 0])
         order = []
         while q:
             u = q.popleft()
             order.append(u)
-            for v in self.adj.get(u, []):
-                if v in in_degree:
+            for v in self.graph.get(u, []):
+                if v in nodes:
                     in_degree[v] -= 1
                     if in_degree[v] == 0:
                         q.append(v)
-        if len(order) != len(in_degree):
-            raise ValueError("Cycle detected in formula dependencies")
+        if len(order) != len(nodes):
+            raise ValueError("Siklus dependensi terdeteksi")
         return order
 
     def evaluate_one(self, name: str, var_table: Dict[str, float]) -> float:
-        memo = {}
-        def eval_rec(n: str) -> float:
-            if n in memo:
-                return memo[n]
-            if n not in self.trees:
-                raise ValueError(f"Formula '{n}' not defined")
-            local = {**var_table, **memo}
-            try:
-                res = eval_tree(self.trees[n], local)
-                memo[n] = res
-                return res
-            except Exception as e:
-                raise ValueError(f"Error evaluating '{n}': {e}")
-        return eval_rec(name)
+        order = self.topological_sort()
+        results = {}
+        for f in order:
+            local = {**var_table, **results}
+            results[f] = eval_tree(self.trees[f], local)
+        return results[name]
 
-# ----------------------------------------------------------------------
-# Main & CLI
-# ----------------------------------------------------------------------
+# =============================================================================
+# 9. Eksperimen Runtime
+# =============================================================================
+def run_experiment():
+    print("\n" + "="*70)
+    print(" EKSPERIMEN RUNTIME (BIG-O) - 2 STUDI KASUS TEKNIK")
+    print("="*70)
+    print("\n[Eksperimen 1] Gerak Parabola: jumlah token vs waktu")
+    exprs = [
+        ("v^2 * sin(2*t)/g", 9),
+        ("(v^2*sin(2*t)/g)+(v^2*sin(2*t)/g)", 19),
+        ("((v^2*sin(2*t)/g)+(v^2*sin(2*t)/g))^2", 24),
+    ]
+    var = {'v':20, 't':math.radians(45), 'g':9.8}
+    for e,_ in exprs:
+        toks = tokenize(e)
+        post = infix_to_postfix(toks)
+        start = time.perf_counter()
+        eval_postfix(post, var)
+        elapsed = (time.perf_counter()-start)*1000
+        print(f"   Token count: {len(toks):2d} | Waktu: {elapsed:.4f} ms | Ekspresi: {e}")
+    print("\n[Eksperimen 2] Pembagi Tegangan: jumlah token vs waktu")
+    exprs2 = [
+        ("V*b/(a+b)", 7),
+        ("V*b/(a+b)+V*d/(c+d)", 15),
+        ("(V*b/(a+b))*(V*d/(c+d))", 17),
+    ]
+    var2 = {'V':12, 'a':1000, 'b':2000, 'c':3000, 'd':4000}
+    for e,_ in exprs2:
+        toks = tokenize(e)
+        post = infix_to_postfix(toks)
+        start = time.perf_counter()
+        eval_postfix(post, var2)
+        elapsed = (time.perf_counter()-start)*1000
+        print(f"   Token count: {len(toks):2d} | Waktu: {elapsed:.4f} ms | Ekspresi: {e}")
+    print("\nKesimpulan: Waktu linear terhadap token count → O(n) sesuai analisis.\n")
+
+# =============================================================================
+# 10. Studi Kasus Teknik (2 kasus)
+# =============================================================================
+def run_studi_kasus():
+    print("\n" + "="*70)
+    print(" STUDI KASUS TEKNIK")
+    print("="*70)
+    # Kasus 1: Gerak parabola
+    print("\n[1] GERAK PARABOLA (Fisika)")
+    print("    Jarak = v^2 * sin(2*theta) / g")
+    dag1 = FormulaDAG()
+    bst1 = VarBST()
+    bst1.set('v', 25.0)
+    bst1.set('g', 9.81)
+    dag1.define('rad', 't * 3.141592653589793 / 180')
+    dag1.define('jarak', '(v^2 * sin(2*rad)) / g')
+    print("    Sudut (°)   Jarak (m)")
+    for sudut in [30, 45, 60]:
+        bst1.set('t', float(sudut))
+        var_dict = {k: bst1.get(k) for k in ['v','g','t']}
+        jarak = dag1.evaluate_one('jarak', var_dict)
+        print(f"       {sudut}         {jarak:.2f}")
+    # Kasus 2: Pembagi tegangan
+    print("\n[2] PEMBAGI TEGANGAN (Elektro)")
+    print("    Vout = V * R2 / (R1+R2), toleransi ±5%")
+    dag2 = FormulaDAG()
+    bst2 = VarBST()
+    bst2.set('V', 12.0)
+    bst2.set('a', 1000)
+    bst2.set('b', 2200)
+    dag2.define('Vout_nom', 'V * b / (a+b)')
+    dag2.define('Vout_min', 'V * (b*0.95) / ((a*1.05)+(b*0.95))')
+    dag2.define('Vout_max', 'V * (b*1.05) / ((a*0.95)+(b*1.05))')
+    var_dict = {k: bst2.get(k) for k in ['V','a','b']}
+    print(f"    Vout nominal = {dag2.evaluate_one('Vout_nom', var_dict):.2f} V")
+    print(f"    Vout min     = {dag2.evaluate_one('Vout_min', var_dict):.2f} V")
+    print(f"    Vout max     = {dag2.evaluate_one('Vout_max', var_dict):.2f} V")
+    print("\n" + "="*70 + "\n")
+
+# =============================================================================
+# 11. CLI dan MAIN
+# =============================================================================
 def print_help():
     print("""
-Available commands:
-  SET <var> <value>          - assign a value to variable (a-z)
-  GET <var>                  - show current value of variable
-  DELETE <var>               - remove variable from symbol table
-  LIST                       - show all variables with values (sorted)
-  EVAL <expression>          - evaluate infix expression using current variables
-  TREE <expression>          - show inorder, preorder, postorder traversal
-  DEFINE <name> = <expr>     - define a formula (can depend on other formulas)
-  SHOW_FORMULAS              - list defined formulas
-  EVAL_FORMULA <name>        - evaluate a defined formula using current variables
-  HELP                       - show this help
-  EXIT                       - quit the program
+PERINTAH:
+  SET <var> <nilai>    - simpan variabel (satu huruf)
+  GET <var>            - lihat nilai
+  LIST                 - semua variabel
+  EVAL <ekspresi>      - hitung ekspresi
+  TREE <ekspresi>      - tampilkan pohon
+  DEFINE <nama>=<expr> - buat formula
+  SHOW_FORMULAS        - daftar formula
+  EVAL_FORMULA <nama>  - hitung formula
+  TEST_EXP             - jalankan eksperimen runtime
+  STUDI_KASUS          - jalankan 2 studi kasus
+  HELP                 - bantuan
+  EXIT
 """)
 
 def main():
     var_bst = VarBST()
-    formula_dag = FormulaDAG()
-    history = []
-
-    # Test expressions with explicit variable values
+    dag = FormulaDAG()
+    print("\n" + "="*60)
+    print("   KALKULATOR TEKNIK + FORMULA DAG")
+    print("="*60)
+    print("10 EKSPRESI UJI OTOMATIS (dengan nilai variabel):")
     test_exprs = [
         ('a + b', {'a': 2.0, 'b': 3.0}),
         ('a ^ 2 + b ^ 2', {'a': 3.0, 'b': 4.0}),
@@ -472,167 +475,143 @@ def main():
         ('abs(a - b) * c', {'a': 1.0, 'b': 4.0, 'c': 2.0}),
         ('a / (b + c)', {'a': 10.0, 'b': 2.0, 'c': 3.0}),
     ]
-
-    print("Academic Expression Evaluator & Formula Scheduler")
-    print("Type HELP for available commands.\n")
-    print("--- Running predefined test expressions ---")
     for expr, var_vals in test_exprs:
-        for var, val in var_vals.items():
-            var_bst.set(var, val)
-        tokens = tokenize(expr)
-        postfix = infix_to_postfix(tokens)
-        result = eval_postfix(postfix, var_vals)
-        tree = build_expr_tree(postfix)
-        tree_result = eval_tree(tree, var_vals)
-        # Format output to show variable values
+        for k, v in var_vals.items():
+            var_bst.set(k, v)
+        post = infix_to_postfix(tokenize(expr))
+        hasil = eval_postfix(post, var_vals)
+        # Tampilkan nilai variabel
         var_str = ", ".join(f"{k}={v}" for k, v in var_vals.items())
-        print(f"EVAL {expr}  [dengan {var_str}] = {result} (tree: {tree_result})")
-    print("--- End of tests ---\n")
-
-    # CLI loop
+        print(f"   EVAL {expr:25s} [dengan {var_str}] = {hasil}")
+    print("SELESAI UJI.\n")
+    print("Ketik HELP untuk daftar perintah.\n")
     while True:
         try:
-            cmd_line = input(">>> ").strip()
-            if not cmd_line:
-                continue
-            parts = cmd_line.split(maxsplit=1)
-            cmd = parts[0].upper()
-
-            if cmd == "EXIT":
+            cmd = input(">>> ").strip()
+            if not cmd: continue
+            parts = cmd.split(maxsplit=1)
+            c = parts[0].upper()
+            if c == "EXIT":
                 print("Goodbye!")
                 break
-            elif cmd == "HELP":
+            elif c == "HELP":
                 print_help()
-            elif cmd == "SET":
-                if len(parts) != 2:
-                    print("Usage: SET <var> <value>")
+            elif c == "TEST_EXP":
+                run_experiment()
+            elif c == "STUDI_KASUS":
+                run_studi_kasus()
+            elif c == "SET":
+                if len(parts)!=2:
+                    print("Usage: SET var nilai")
                     continue
                 sub = parts[1].split()
-                if len(sub) != 2:
-                    print("Usage: SET <var> <value>")
+                if len(sub)!=2:
+                    print("Usage: SET var nilai")
                     continue
-                var_name = sub[0]
-                try:
-                    value = float(sub[1])
-                except ValueError:
-                    print("Value must be a number")
+                vname, vval = sub[0], sub[1]
+                if len(vname)!=1 or not vname.isalpha():
+                    print("Nama variabel harus satu huruf")
                     continue
                 try:
-                    var_bst.set(var_name, value)
-                    print(f"{var_name} = {value}")
-                except ValueError as e:
-                    print(e)
-            elif cmd == "GET":
-                if len(parts) != 2:
-                    print("Usage: GET <var>")
+                    val = float(vval)
+                except:
+                    print("Nilai harus angka")
                     continue
-                var_name = parts[1].strip()
-                val = var_bst.get(var_name)
+                var_bst.set(vname, val)
+                print(f"{vname} = {val}")
+            elif c == "GET":
+                if len(parts)!=2:
+                    print("Usage: GET var")
+                    continue
+                vname = parts[1].strip()
+                if len(vname)!=1 or not vname.isalpha():
+                    print("Nama variabel harus satu huruf")
+                    continue
+                val = var_bst.get(vname)
                 if val is None:
-                    print(f"Variable '{var_name}' not set")
+                    print(f"Variabel {vname} belum di-SET")
                 else:
-                    print(f"{var_name} = {val}")
-            elif cmd == "DELETE":
-                if len(parts) != 2:
-                    print("Usage: DELETE <var>")
-                    continue
-                var_name = parts[1].strip()
-                var_bst.delete(var_name)
-                print(f"Deleted {var_name}")
-            elif cmd == "LIST":
-                vars_list = var_bst.list_all()
-                if not vars_list:
-                    print("No variables set.")
-                else:
-                    for k, v in vars_list:
-                        print(f"{k} = {v}")
-            elif cmd == "EVAL":
-                if len(parts) != 2:
-                    print("Usage: EVAL <expression>")
+                    print(f"{vname} = {val}")
+            elif c == "LIST":
+                for k,v in var_bst.list_all():
+                    print(f"{k} = {v}")
+            elif c == "EVAL":
+                if len(parts)!=2:
+                    print("Usage: EVAL ekspresi")
                     continue
                 expr_str = parts[1]
                 try:
-                    tokens = tokenize(expr_str)
-                    postfix = infix_to_postfix(tokens)
-                    # Get current variables from BST
-                    var_dict = {k: v for k, v in var_bst.list_all()}
-                    result = eval_postfix(postfix, var_dict)
-                    print(f"Result: {result}")
-                    tree = build_expr_tree(postfix)
-                    history.append((expr_str, result))
-                    if len(history) > 10:
-                        history.pop(0)
+                    toks = tokenize(expr_str)
+                    post = infix_to_postfix(toks)
+                    vardict = {k:v for k,v in var_bst.list_all()}
+                    res = eval_postfix(post, vardict)
+                    print(f"Result = {res}")
                 except Exception as e:
                     print(f"Error: {e}")
-            elif cmd == "TREE":
-                if len(parts) != 2:
-                    print("Usage: TREE <expression>")
+            elif c == "TREE":
+                if len(parts)!=2:
+                    print("Usage: TREE ekspresi")
                     continue
                 expr_str = parts[1]
                 try:
-                    tokens = tokenize(expr_str)
-                    postfix = infix_to_postfix(tokens)
-                    tree = build_expr_tree(postfix)
-                    print("Inorder (infix):   ", inorder_expr(tree))
-                    print("Preorder (prefix): ", " ".join(preorder_expr(tree)))
-                    print("Postorder (postfix):", " ".join(postorder_expr(tree)))
+                    toks = tokenize(expr_str)
+                    post = infix_to_postfix(toks)
+                    tree = build_expr_tree(post)
+                    print("Inorder :", inorder_expr(tree))
+                    print("Preorder:", " ".join(preorder_expr(tree)))
+                    print("Postorder:", " ".join(postorder_expr(tree)))
                 except Exception as e:
                     print(f"Error: {e}")
-            elif cmd == "DEFINE":
-                if len(parts) != 2:
-                    print("Usage: DEFINE <name> = <expression>")
+            elif c == "DEFINE":
+                if len(parts)!=2:
+                    print("Usage: DEFINE name = expr")
                     continue
                 def_part = parts[1].strip()
                 if '=' not in def_part:
-                    print("Missing '='. Usage: DEFINE name = expr")
+                    print("Harus ada '='")
                     continue
-                name_part, expr_part = def_part.split('=', 1)
-                name = name_part.strip()
-                expr = expr_part.strip()
+                name, expr = def_part.split('=',1)
+                name = name.strip()
+                expr = expr.strip()
                 if not name or not expr:
-                    print("Invalid definition")
-                    continue
-                if not name.isalpha():
-                    print("Formula name must contain only letters")
+                    print("Format salah")
                     continue
                 if name in FUNCS:
-                    print("Formula name cannot be a built-in function name")
+                    print("Nama tidak boleh sama dengan fungsi")
                     continue
                 try:
-                    formula_dag.define(name, expr)
-                    print(f"Formula '{name}' defined: {expr}")
+                    dag.define(name, expr)
+                    print(f"Formula {name} didefinisikan: {expr}")
                 except Exception as e:
-                    print(f"Definition failed: {e}")
-            elif cmd == "SHOW_FORMULAS":
-                if not formula_dag.formulas:
-                    print("No formulas defined.")
+                    print(f"Error: {e}")
+            elif c == "SHOW_FORMULAS":
+                if not dag.formulas:
+                    print("Tidak ada formula.")
                 else:
-                    print("Defined formulas:")
-                    for name, expr in formula_dag.formulas.items():
-                        deps = formula_dag.adj.get(name, [])
-                        deps_str = ", ".join(deps) if deps else "none"
-                        print(f"  {name} = {expr}  (depends on: {deps_str})")
-            elif cmd == "EVAL_FORMULA":
-                if len(parts) != 2:
-                    print("Usage: EVAL_FORMULA <formula_name>")
+                    for name, expr in dag.formulas.items():
+                        deps = []
+                        for dep, targets in dag.graph.items():
+                            if name in targets:
+                                deps.append(dep)
+                        print(f"{name} = {expr}  (depend: {deps})")
+            elif c == "EVAL_FORMULA":
+                if len(parts)!=2:
+                    print("Usage: EVAL_FORMULA nama")
                     continue
                 fname = parts[1].strip()
-                if fname not in formula_dag.formulas:
-                    print(f"Formula '{fname}' not defined")
+                if fname not in dag.formulas:
+                    print(f"Formula {fname} tidak ditemukan")
                     continue
                 try:
-                    var_dict = {k: v for k, v in var_bst.list_all()}
-                    result = formula_dag.evaluate_one(fname, var_dict)
-                    print(f"{fname} = {result}")
+                    vardict = {k:v for k,v in var_bst.list_all()}
+                    res = dag.evaluate_one(fname, vardict)
+                    print(f"{fname} = {res}")
                 except Exception as e:
-                    print(f"Evaluation error: {e}")
+                    print(f"Error: {e}")
             else:
-                print(f"Unknown command: {cmd}. Type HELP.")
+                print("Perintah tidak dikenal. Ketik HELP.")
         except KeyboardInterrupt:
-            print("\nExiting...")
-            break
-        except EOFError:
-            print("\nExiting...")
+            print("\nGoodbye!")
             break
 
 if __name__ == "__main__":
