@@ -444,6 +444,7 @@ def print_help():
 PERINTAH:
   SET <var> <nilai>    - simpan variabel (satu huruf)
   GET <var>            - lihat nilai
+  DELETE <var>         - hapus variabel
   LIST                 - semua variabel
   EVAL <ekspresi>      - hitung ekspresi
   TREE <ekspresi>      - tampilkan pohon
@@ -532,6 +533,16 @@ def main():
                     print(f"Variabel {vname} belum di-SET")
                 else:
                     print(f"{vname} = {val}")
+            elif c == "DELETE":
+                if len(parts)!=2:
+                    print("Usage: DELETE var")
+                    continue
+                vname = parts[1].strip()
+                if len(vname)!=1 or not vname.isalpha():
+                    print("Nama variabel harus satu huruf a-z")
+                    continue
+                var_bst.delete(vname)
+                print(f"Variabel '{vname}' telah dihapus")
             elif c == "LIST":
                 for k,v in var_bst.list_all():
                     print(f"{k} = {v}")
