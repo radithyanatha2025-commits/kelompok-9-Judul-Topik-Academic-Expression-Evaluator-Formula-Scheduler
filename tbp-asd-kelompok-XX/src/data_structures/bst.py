@@ -1,7 +1,114 @@
 MODUL 3: BST Tabel Variabel (SATU-SATUNYA BST DALAM PROGRAM)
 Binary Search Tree untuk menyimpan variabel dengan kunci (a-z)
 """
+"""
+MODUL 3: BST TABEL VARIABEL (Symbol Table)
+============================================
+Implementasi BST dengan kunci = nama variabel (char)
+Mendukung: SET, GET, DELETE, LIST (inorder traversal)
+Big-O: O(log 26) ≈ O(1) untuk 26 variabel
+"""
 
+from typing import Optional, List, Tuple
+
+
+class VarBSTNode:
+    """Node untuk Binary Search Tree"""
+    __slots__ = ('key', 'val', 'left', 'right')
+    def __init__(self, key: str, val: float):
+        self.key = key      # nama variabel (a-z)
+        self.val = val      # nilai variabel
+        self.left = None
+        self.right = None
+
+
+class VarBST:
+    """Binary Search Tree untuk menyimpan variabel"""
+    def __init__(self):
+        self.root = None
+
+    def set(self, key: str, val: float) -> None:
+        """
+        SET variabel (insert atau update).
+        Big-O: O(log n)
+        """
+        if len(key) != 1 or not key.isalpha():
+            raise ValueError("Nama variabel harus satu huruf a-z")
+        self.root = self._set(self.root, key, val)
+
+    def _set(self, node, key, val):
+        if node is None:
+            return VarBSTNode(key, val)
+        if key < node.key:
+            node.left = self._set(node.left, key, val)
+        elif key > node.key:
+            node.right = self._set(node.right, key, val)
+        else:
+            node.val = val   # update nilai
+        return node
+
+    def get(self, key: str):
+        """
+        GET nilai variabel (return None jika tidak ada).
+        Big-O: O(log n)
+        """
+        node = self._get(self.root, key)
+        return node.val if node else None
+
+    def _get(self, node, key):
+        if node is None or node.key == key:
+            return node
+        if key < node.key:
+            return self._get(node.left, key)
+        else:
+            return self._get(node.right, key)
+
+    def delete(self, key: str) -> None:
+        """
+        DELETE variabel dari BST.
+        Big-O: O(log n)
+        """
+        self.root = self._delete(self.root, key)
+
+    def _delete(self, node, key):
+        if node is None:
+            return None
+        if key < node.key:
+            node.left = self._delete(node.left, key)
+        elif key > node.key:
+            node.right = self._delete(node.right, key)
+        else:
+            # node ditemukan
+            if node.left is None:
+                return node.right
+            if node.right is None:
+                return node.left
+            # dua anak: cari inorder successor
+            succ = self._min(node.right)
+            node.key = succ.key
+            node.val = succ.val
+            node.right = self._delete(node.right, succ.key)
+        return node
+
+    def _min(self, node):
+        while node.left:
+            node = node.left
+        return node
+
+    def list_all(self) -> List[Tuple[str, float]]:
+        """
+        LIST semua variabel dalam urutan inorder (terurut).
+        Big-O: O(n)
+        """
+        result = []
+        self._inorder(self.root, result)
+        return result
+
+    def _inorder(self, node, out):
+        if node:
+            self._inorder(node.left, out)
+            out.append((node.key, node.val))
+            self._inorder(node.right, out)
 
  ========================================
 MODUL 6: CLI - Menggunakan berbagai struktur data
