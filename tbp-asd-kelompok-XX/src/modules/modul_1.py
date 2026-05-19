@@ -2,24 +2,29 @@ def infix_to_postfix(tokens: List[str]) -> List[str]:
     output = []
     op_stack = Stack()
     for tok in tokens:
-        if tok in FUNCS:          # fungsi unary
+        if tok in FUNCS:
             op_stack.push(tok)
         elif tok == '(':
             op_stack.push(tok)
         elif tok == ')':
-            while op_stack.peek() != '(':
+            while not op_stack.is_empty() and op_stack.peek() != '(':
                 output.append(op_stack.pop())
-            op_stack.pop()        # buang '('
-            if op_stack.peek() in FUNCS:
+            if op_stack.is_empty():
+                raise ValueError("Parentheses tidak cocok")
+            op_stack.pop()
+            if not op_stack.is_empty() and op_stack.peek() in FUNCS:
                 output.append(op_stack.pop())
-        elif tok in PREC:         # operator
-            while (not op_stack.is_empty() and 
-                   prioritas(puncak) >= prioritas(tok)):
+        elif tok in PREC:
+            while (not op_stack.is_empty() and op_stack.peek() != '(' and
+                   (PREC[op_stack.peek()] > PREC[tok] or
+                    (PREC[op_stack.peek()] == PREC[tok] and tok not in RASSOC))):
                 output.append(op_stack.pop())
             op_stack.push(tok)
-        else:                     # operand
+        else:
             output.append(tok)
-    # sisa operator
     while not op_stack.is_empty():
-        output.append(op_stack.pop())
+        top = op_stack.pop()
+        if top in '()':
+            raise ValueError("Parentheses tidak cocok")
+        output.append(top)
     return output
