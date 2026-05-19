@@ -4,19 +4,19 @@ AKADEMIK EXPRESSION EVALUATOR & FORMULA SCHEDULER
 2 Studi Kasus Teknik (Fisika & Elektro) + Eksperimen Big-O
 Output 10 ekspresi uji menampilkan nilai variabel
 """
- 
+
 import math
 import time
 from typing import Optional, Dict, List, Tuple, Set
 from collections import deque
- 
+
 # =============================================================================
 # 1. Operator & Fungsi
 # =============================================================================
 PREC = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
 RASSOC = {'^'}
 FUNCS = {'sin', 'cos', 'sqrt', 'log', 'abs'}
- 
+
 # =============================================================================
 # 2. Stack (Linked List)
 # =============================================================================
@@ -25,7 +25,7 @@ class LNode:
     def __init__(self, data):
         self.data = data
         self.next = None
- 
+
 class Stack:
     def __init__(self):
         self.top = None
@@ -45,7 +45,7 @@ class Stack:
         return self.top.data if self.top else None
     def is_empty(self):
         return self.size == 0
- 
+
 # =============================================================================
 # 3. Tokenizer
 # =============================================================================
@@ -78,7 +78,7 @@ def tokenize(expr: str) -> List[str]:
             continue
         raise ValueError(f"Karakter tidak dikenal: '{ch}'")
     return tokens
- 
+
 # =============================================================================
 # 4. Infix -> Postfix
 # =============================================================================
@@ -112,7 +112,7 @@ def infix_to_postfix(tokens: List[str]) -> List[str]:
             raise ValueError("Parentheses tidak cocok")
         output.append(top)
     return output
- 
+
 # =============================================================================
 # 5. Evaluasi Postfix
 # =============================================================================
@@ -162,7 +162,7 @@ def eval_postfix(tokens: List[str], var_table: Dict[str, float]) -> float:
     if not stack.is_empty():
         raise ValueError("Ekspresi tidak valid")
     return result
- 
+
 # =============================================================================
 # 6. Expression Tree
 # =============================================================================
@@ -172,7 +172,7 @@ class ExprNode:
         self.val = val
         self.left = None
         self.right = None
- 
+
 def build_expr_tree(postfix: List[str]) -> Optional[ExprNode]:
     stack = Stack()
     for tok in postfix:
@@ -188,7 +188,7 @@ def build_expr_tree(postfix: List[str]) -> Optional[ExprNode]:
         stack.push(node)
     root = stack.pop()
     return root
- 
+
 def inorder_expr(root: Optional[ExprNode]) -> str:
     if root is None: return ""
     if root.val in PREC:
@@ -197,15 +197,15 @@ def inorder_expr(root: Optional[ExprNode]) -> str:
         return f"{root.val}({inorder_expr(root.left)})"
     else:
         return root.val
- 
+
 def preorder_expr(root: Optional[ExprNode]) -> List[str]:
     if root is None: return []
     return [root.val] + preorder_expr(root.left) + preorder_expr(root.right)
- 
+
 def postorder_expr(root: Optional[ExprNode]) -> List[str]:
     if root is None: return []
     return postorder_expr(root.left) + postorder_expr(root.right) + [root.val]
- 
+
 def eval_tree(root: Optional[ExprNode], var_table: Dict[str, float]) -> float:
     if root is None:
         raise ValueError("Tree kosong")
@@ -232,7 +232,7 @@ def eval_tree(root: Optional[ExprNode], var_table: Dict[str, float]) -> float:
                 raise ValueError(f"Variabel '{root.val}' belum di-SET")
             return var_table[root.val]
     raise ValueError(f"Node tak dikenal: {root.val}")
- 
+
 # =============================================================================
 # 7. BST Tabel Variabel (satu huruf)
 # =============================================================================
@@ -243,7 +243,7 @@ class VarBSTNode:
         self.val = val
         self.left = None
         self.right = None
- 
+
 class VarBST:
     def __init__(self):
         self.root = None
@@ -299,7 +299,7 @@ class VarBST:
             self._inorder(node.left, out)
             out.append((node.key, node.val))
             self._inorder(node.right, out)
- 
+
 # =============================================================================
 # 8. Formula DAG (arah dependensi benar)
 # =============================================================================
@@ -308,7 +308,7 @@ class FormulaDAG:
         self.graph: Dict[str, List[str]] = {}
         self.formulas: Dict[str, str] = {}
         self.trees: Dict[str, ExprNode] = {}
- 
+
     def _extract_deps(self, expr: str) -> Set[str]:
         tokens = tokenize(expr)
         deps = set()
@@ -316,7 +316,7 @@ class FormulaDAG:
             if tok.isalpha() and tok not in FUNCS:
                 deps.add(tok)
         return deps
- 
+
     def define(self, name: str, expr: str):
         tokens = tokenize(expr)
         postfix = infix_to_postfix(tokens)
@@ -330,7 +330,7 @@ class FormulaDAG:
                 self.graph.setdefault(dep, []).append(name)
         self.graph.setdefault(name, [])
         self.topological_sort()
- 
+
     def topological_sort(self) -> List[str]:
         nodes = set(self.formulas.keys())
         in_degree = {n: 0 for n in nodes}
@@ -351,7 +351,7 @@ class FormulaDAG:
         if len(order) != len(nodes):
             raise ValueError("Siklus dependensi terdeteksi")
         return order
- 
+
     def evaluate_one(self, name: str, var_table: Dict[str, float]) -> float:
         order = self.topological_sort()
         results = {}
@@ -359,7 +359,7 @@ class FormulaDAG:
             local = {**var_table, **results}
             results[f] = eval_tree(self.trees[f], local)
         return results[name]
- 
+
 # =============================================================================
 # 9. Eksperimen Runtime
 # =============================================================================
@@ -396,7 +396,7 @@ def run_experiment():
         elapsed = (time.perf_counter()-start)*1000
         print(f"   Token count: {len(toks):2d} | Waktu: {elapsed:.4f} ms | Ekspresi: {e}")
     print("\nKesimpulan: Waktu linear terhadap token count → O(n) sesuai analisis.\n")
- 
+
 # =============================================================================
 # 10. Studi Kasus Teknik (2 kasus)
 # =============================================================================
@@ -435,7 +435,7 @@ def run_studi_kasus():
     print(f"    Vout min     = {dag2.evaluate_one('Vout_min', var_dict):.2f} V")
     print(f"    Vout max     = {dag2.evaluate_one('Vout_max', var_dict):.2f} V")
     print("\n" + "="*70 + "\n")
- 
+
 # =============================================================================
 # 11. CLI dan MAIN
 # =============================================================================
@@ -455,7 +455,7 @@ PERINTAH:
   HELP                 - bantuan
   EXIT
 """)
- 
+
 def main():
     var_bst = VarBST()
     dag = FormulaDAG()
@@ -613,9 +613,6 @@ def main():
         except KeyboardInterrupt:
             print("\nGoodbye!")
             break
- 
+
 if __name__ == "__main__":
     main()
- 
- 
-
