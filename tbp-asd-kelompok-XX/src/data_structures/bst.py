@@ -112,11 +112,10 @@ class VarBST:
             self._inorder(node.left, out)
             out.append((node.key, node.val))
             self._inorder(node.right, out)
-
+ ========================================
 MODUL 6: CLI - Menggunakan berbagai struktur data
 IMPORT dari modul 3
 from modul3_bst import VariableBST  # Hanya mengimpor, bukan membuat BST baru
- ====================
 # Modul 6 TIDAK mengimplementasikan BST dari nol
 # Modul 6 hanya MENGGUNAKAN BST yang sudah dibuat di modul 3
 """
