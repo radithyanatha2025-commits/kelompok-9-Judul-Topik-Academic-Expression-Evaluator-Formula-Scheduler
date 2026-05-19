@@ -113,6 +113,7 @@ class VarBST:
             out.append((node.key, node.val))
             self._inorder(node.right, out)
 
+
 MODUL 6: CLI - Menggunakan berbagai struktur data
 """
 def tokenize(expr : str) -> list:
