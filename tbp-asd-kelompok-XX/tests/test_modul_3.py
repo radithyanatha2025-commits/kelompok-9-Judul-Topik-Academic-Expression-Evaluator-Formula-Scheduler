@@ -1,8 +1,3 @@
-"""
-UNIT TEST: MODUL 3 - BST TABEL VARIABEL
-Menguji implementasi BST untuk menyimpan variabel
-"""
-
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
