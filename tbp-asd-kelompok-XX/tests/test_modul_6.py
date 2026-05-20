@@ -1,14 +1,3 @@
-"""
-UNIT TEST: MODUL 6 - CLI KALKULATOR
-Menguji antarmuka command line dan perintah-perintahnya
-
-Karena CLI berinteraksi dengan input/output pengguna,
-test ini menggunakan pendekatan:
-1. Simulasi input dengan StringIO
-2. Menangkap output dengan redirect stdout
-3. Menguji fungsi perintah secara terpisah
-"""
-
 import sys
 import os
 import io
