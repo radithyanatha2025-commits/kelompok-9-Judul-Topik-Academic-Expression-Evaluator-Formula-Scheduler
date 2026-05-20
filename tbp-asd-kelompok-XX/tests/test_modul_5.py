@@ -1,8 +1,3 @@
-"""
-UNIT TEST: MODUL 5 - FORMULA DAG
-Menguji Graph Dependensi Formula
-"""
-
 import sys
 import os
 import math
