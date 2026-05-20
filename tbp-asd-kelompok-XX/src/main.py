@@ -1,7 +1,3 @@
-"""
-AKADEMIK EXPRESSION EVALUATOR & FORMULA SCHEDULER
-"""
-
 import math
 import time
 from typing import Optional, Dict, List, Tuple, Set
