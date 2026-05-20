@@ -1,8 +1,3 @@
-"""
-UNIT TEST: STACK (LINKED LIST)
-Menguji implementasi Stack berbasis Linked List
-"""
-
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
