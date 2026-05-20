@@ -1,15 +1,1 @@
-Tujuan dari project ini adalah:
 
-Mengimplementasikan 6 struktur data utama sesuai spesifikasi:
-
-Stack untuk konversi Infix ke Postfix (Modul 1)
-
-Stack untuk evaluasi Postfix (Modul 2)
-
-BST untuk tabel variabel (Modul 3)
-
-Binary Tree untuk expression tree (Modul 4)
-
-Graph DAG untuk dependensi formula (Modul 5)
-
-CLI sebagai antarmuka pengguna (Modul 6) 
