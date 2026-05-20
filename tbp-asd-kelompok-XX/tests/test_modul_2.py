@@ -1,8 +1,3 @@
-"""
-UNIT TEST: MODUL 2 - EVALUASI POSTFIX
-Menguji fungsi eval_postfix()
-"""
-
 import sys
 import os
 import math
