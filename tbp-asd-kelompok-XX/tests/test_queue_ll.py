@@ -1,9 +1,3 @@
-"""
-UNIT TEST: QUEUE (LINKED LIST)
-Menguji implementasi Queue berbasis Linked List
-Queue digunakan dalam topological sort (algoritma Kahn)
-"""
-
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
