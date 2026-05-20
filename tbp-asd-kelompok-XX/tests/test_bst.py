@@ -1,8 +1,3 @@
-"""
-UNIT TEST: BST (BINARY SEARCH TREE)
-Menguji implementasi BST untuk tabel variabel
-"""
-
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
