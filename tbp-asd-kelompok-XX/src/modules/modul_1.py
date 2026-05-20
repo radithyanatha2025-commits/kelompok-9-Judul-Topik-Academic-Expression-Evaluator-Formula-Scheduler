@@ -5,9 +5,9 @@ def infix_to_postfix(tokens: List[str]) -> List[str]:
     for tok in tokens:
         # KASUS 1: Fungsi unary (sin, cos, dll)
         if tok in FUNCS:
-            op_stack.push(tok)
-        
-        # KASUS 2: Kurung buka
+            op_stack.push(tok)   
+
+        # KASUS 2: Kurung buka   
         elif tok == '(':
             op_stack.push(tok)
         
@@ -17,7 +17,7 @@ def infix_to_postfix(tokens: List[str]) -> List[str]:
             while not op_stack.is_empty() and op_stack.peek() != '(':
                 output.append(op_stack.pop())
             # Buang '(' dari stack
-            op_stack.pop()
+            op_stack.pop() 
             # Jika ada fungsi di stack, pindahkan ke output
             if not op_stack.is_empty() and op_stack.peek() in FUNCS:
                 output.append(op_stack.pop())
