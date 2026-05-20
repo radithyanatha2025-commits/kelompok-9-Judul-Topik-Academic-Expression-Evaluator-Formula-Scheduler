@@ -1,8 +1,3 @@
-"""
-UNIT TEST: MODUL 1 - KONVERSI INFIX KE POSTFIX
-Menguji fungsi infix_to_postfix()
-"""
-
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
