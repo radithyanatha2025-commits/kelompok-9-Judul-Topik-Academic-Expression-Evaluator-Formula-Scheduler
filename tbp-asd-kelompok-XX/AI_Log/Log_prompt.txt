@@ -1,2 +1,3 @@
 jelaskan dengan rinci terkait codingan tersebut!
 apakah codingan saya sudah sesuai dengan perintah di modul
+apakah code final yang saya buat itu sudah sesuai dengan topik di file modul?
