@@ -76,5 +76,3 @@ def run_experiment():
         elapsed = (time.perf_counter()-start)*1000
         print(f"   Token count: {len(toks):2d} | Waktu: {elapsed:.4f} ms | Ekspresi: {e}")
     print("\nKesimpulan: Waktu linear terhadap token count → O(n) sesuai analisis.\n")
-
-
