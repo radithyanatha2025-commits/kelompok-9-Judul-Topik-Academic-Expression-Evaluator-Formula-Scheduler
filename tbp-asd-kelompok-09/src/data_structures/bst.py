@@ -1,13 +1,4 @@
-MODUL 3: BST Tabel Variabel (SATU-SATUNYA BST DALAM PROGRAM)
-BST TABEL VARIABEL (Symbol Table)
-============================================
-Implementasi BST dengan kunci = nama variabel (char)
-Mendukung: SET, GET, DELETE, LIST (inorder traversal)
-Big-O: O(log 26) ≈ O(1) untuk 26 variabel
-"""
-
 from typing import Optional, List, Tuple
-
 
 class VarBSTNode:
     """Node untuk Binary Search Tree"""
