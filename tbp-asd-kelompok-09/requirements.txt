@@ -1,1 +1,1 @@
-
+Tidak menggunakan dependensi eksternal/library eksternal
